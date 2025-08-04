@@ -1,0 +1,478 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
+  <title>Andrew Dalka | Terminal Card</title>
+  <style>
+    body {
+      background-color: #0a0a0a;
+      color: #f0f0f0;
+      font-family: 'Courier New', monospace;
+      margin: 0;
+      padding: 1rem;
+      overflow: hidden;
+      font-size: 14px;
+      text-shadow: 0 0 5px rgba(240, 240, 240, 0.8);
+    }
+
+    @media (max-width: 768px) {
+      body {
+        padding: 0.5rem;
+        font-size: 12px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      body {
+        padding: 0.25rem;
+        font-size: 11px;
+      }
+    }
+
+    #screen {
+      max-width: 720px;
+      margin: auto;
+      white-space: pre-wrap;
+      line-height: 1.4;
+      word-wrap: break-word;
+    }
+
+    .line {
+      opacity: 0;
+      transition: opacity 0.3s ease-in-out;
+    }
+
+    .visible {
+      opacity: 1;
+    }
+
+    #access-line {
+      text-align: center;
+      font-size: 1.5rem;
+      animation: flicker 0.2s infinite alternate;
+    }
+
+    @media (max-width: 768px) {
+      #access-line {
+        font-size: 1.2rem;
+      }
+    }
+
+    @media (max-width: 480px) {
+      #access-line {
+        font-size: 1rem;
+      }
+    }
+
+    @keyframes flicker {
+      from { opacity: 1; }
+      to { opacity: 0.6; }
+    }
+
+    .card {
+      display: none;
+      flex-direction: column;
+      gap: 0.5rem;
+      border: 2px solid #f0f0f0;
+      padding: 1rem;
+      margin-top: 1rem;
+      max-width: 100%;
+      box-sizing: border-box;
+      box-shadow: 0 0 20px rgba(240, 240, 240, 0.3);
+    }
+
+    @media (max-width: 768px) {
+      .card {
+        padding: 0.75rem;
+        margin-top: 0.5rem;
+        gap: 0.4rem;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .card {
+        padding: 0.5rem;
+        font-size: 11px;
+      }
+    }
+
+    .btns {
+      margin-top: 1rem;
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    @media (max-width: 480px) {
+      .btns {
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+    }
+
+    button {
+      background: #0a0a0a;
+      border: 2px solid #f0f0f0;
+      color: #f0f0f0;
+      padding: 0.75rem 1rem;
+      cursor: pointer;
+      flex: 1;
+      min-height: 44px;
+      font-size: inherit;
+      font-family: 'Courier New', monospace;
+      -webkit-tap-highlight-color: transparent;
+      text-shadow: 0 0 5px rgba(240, 240, 240, 0.8);
+      transition: all 0.2s ease;
+    }
+
+    @media (max-width: 480px) {
+      button {
+        padding: 0.75rem;
+        width: 100%;
+      }
+    }
+
+    button:hover {
+      background: #f0f0f0;
+      color: #0a0a0a;
+      box-shadow: 0 0 15px rgba(240, 240, 240, 0.6);
+      text-shadow: none;
+    }
+
+    /* Matrix mode */
+    #matrix {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: #000;
+      color: #00ff00;
+      font-family: 'Courier New', monospace;
+      font-size: 1rem;
+      font-weight: bold;
+      z-index: 9999;
+      overflow: hidden;
+      display: none;
+    }
+
+    .matrix-column {
+      position: absolute;
+      top: 0;
+      color: #00ff00;
+      text-shadow: 0 0 8px #00ff00;
+      animation: matrixFall linear infinite;
+    }
+
+    .matrix-char {
+      display: block;
+      line-height: 1;
+      margin: 0;
+      padding: 0;
+    }
+
+    .matrix-char.bright {
+      color: #ffffff;
+      text-shadow: 0 0 12px #00ff00;
+    }
+
+    @keyframes matrixFall {
+      from { 
+        transform: translateY(-100vh); 
+        opacity: 0;
+      }
+      10% {
+        opacity: 1;
+      }
+      90% {
+        opacity: 1;
+      }
+      to { 
+        transform: translateY(100vh); 
+        opacity: 0;
+      }
+    }
+
+    #matrix-trigger {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 60px;
+      z-index: 10000;
+    }
+
+    @media (max-width: 768px) {
+      #matrix-trigger {
+        height: 80px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Audio will be generated dynamically with Web Audio API -->
+  <div id="screen"></div>
+  <div id="matrix"></div>
+  <div id="matrix-trigger"></div>
+
+  <script>
+    const bootLines = [
+      "> INITIATING SYSTEM...",
+      "> IDENTITY: ANDREW.DALKA",
+      "> MODES: SOLVER / THINKER / MAKER / INTEGRATOR",
+      "> TOOLCHAIN: AI SYSTEMS / MACHINE LOGIC / CONTEXT-AWARE DESIGN",
+      "> STATUS: RADICALLY CAPABLE"
+    ];
+
+    const screen = document.getElementById("screen");
+    let index = 0;
+
+    function showLine(text, delay) {
+      setTimeout(() => {
+        const line = document.createElement("div");
+        line.classList.add("line");
+        line.textContent = text;
+        screen.appendChild(line);
+        requestAnimationFrame(() => line.classList.add("visible"));
+      }, delay);
+    }
+
+    bootLines.forEach((line, i) => {
+      showLine(line, i * 500);
+    });
+
+    // After boot, show ACCESS line
+    setTimeout(() => {
+      const access = document.createElement("div");
+      access.id = "access-line";
+      access.textContent = "CONTACT ACCESS GRANTED";
+      screen.appendChild(access);
+
+      // Device-specific audio and haptic effects
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      
+      // Generate intense bass rumble with Web Audio API
+      function playBassRumble(volume, duration = 4) {
+        console.log("Playing rumble sound...");
+        try {
+          const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+          // Duration passed as parameter
+          
+          // Create multiple bass oscillators for thickness
+          const freq1 = audioContext.createOscillator();
+          const freq2 = audioContext.createOscillator();
+          const freq3 = audioContext.createOscillator();
+          const freq4 = audioContext.createOscillator();
+          
+          // Set ultra-low frequencies for maximum bass impact
+          freq1.frequency.setValueAtTime(20, audioContext.currentTime); // Sub-bass
+          freq2.frequency.setValueAtTime(35, audioContext.currentTime); // Low bass
+          freq3.frequency.setValueAtTime(50, audioContext.currentTime); // Mid-bass
+          freq4.frequency.setValueAtTime(80, audioContext.currentTime); // Upper bass
+          
+          // Use different wave types for richness
+          freq1.type = 'sawtooth';
+          freq2.type = 'square';
+          freq3.type = 'triangle';
+          freq4.type = 'sawtooth';
+          
+          // Create gain nodes for volume control
+          const gain1 = audioContext.createGain();
+          const gain2 = audioContext.createGain();
+          const gain3 = audioContext.createGain();
+          const gain4 = audioContext.createGain();
+          const masterGain = audioContext.createGain();
+          
+          // Set individual gains for layered effect
+          gain1.gain.setValueAtTime(0.8, audioContext.currentTime);
+          gain2.gain.setValueAtTime(0.6, audioContext.currentTime);
+          gain3.gain.setValueAtTime(0.7, audioContext.currentTime);
+          gain4.gain.setValueAtTime(0.4, audioContext.currentTime);
+          
+          // Master volume based on device
+          masterGain.gain.setValueAtTime(volume, audioContext.currentTime);
+          
+          // Create tremolo effect for that "rocket launch" feel
+          const tremolo = audioContext.createOscillator();
+          const tremoloGain = audioContext.createGain();
+          tremolo.frequency.setValueAtTime(15, audioContext.currentTime); // 15Hz tremolo
+          tremolo.type = 'sine';
+          tremoloGain.gain.setValueAtTime(0.4, audioContext.currentTime);
+          
+          // Connect tremolo
+          tremolo.connect(tremoloGain);
+          tremoloGain.connect(masterGain.gain);
+          
+          // Connect oscillators through gains to master
+          freq1.connect(gain1);
+          freq2.connect(gain2);
+          freq3.connect(gain3);
+          freq4.connect(gain4);
+          gain1.connect(masterGain);
+          gain2.connect(masterGain);
+          gain3.connect(masterGain);
+          gain4.connect(masterGain);
+          masterGain.connect(audioContext.destination);
+          
+          // Start everything
+          const startTime = audioContext.currentTime;
+          freq1.start(startTime);
+          freq2.start(startTime);
+          freq3.start(startTime);
+          freq4.start(startTime);
+          tremolo.start(startTime);
+          
+          // Stop after duration
+          freq1.stop(startTime + duration);
+          freq2.stop(startTime + duration);
+          freq3.stop(startTime + duration);
+          freq4.stop(startTime + duration);
+          tremolo.stop(startTime + duration);
+          
+        } catch (error) {
+          console.log("Audio not supported:", error);
+        }
+      }
+      
+      if (isMobile) {
+        // MOBILE: THREE escalating bursts with vibration + deep bass
+        if ('vibrate' in navigator) {
+          // First burst - light
+          navigator.vibrate([100, 150, 150, 150, 200]);
+          
+          // Second burst - medium (after 1 second)
+          setTimeout(() => {
+            navigator.vibrate([200, 100, 250, 100, 300, 100, 350]);
+          }, 1000);
+          
+          // Third burst - MASSIVE (after 2 seconds)
+          setTimeout(() => {
+            navigator.vibrate([
+              500, 100, 600, 100, 700, 100, 800, 100, 900, 100, 1000, 100,
+              1200, 150, 1400, 150, 1600, 200, 1800, 200, 2000
+            ]);
+          }, 2000);
+        }
+        
+        // Bass burst 1 - light
+        playBassRumble(0.6, 1.2);
+        
+        // Bass burst 2 - medium (after 1 second)
+        setTimeout(() => {
+          playBassRumble(0.75, 1.5);
+        }, 1000);
+        
+        // Bass burst 3 - MASSIVE (after 2 seconds)
+        setTimeout(() => {
+          playBassRumble(0.95, 2.5);
+        }, 2000);
+        
+      } else {
+        // PC: THREE escalating bass rumbles without vibration
+        playBassRumble(0.7, 1.2);
+        setTimeout(() => playBassRumble(0.8, 1.5), 1000);
+        setTimeout(() => playBassRumble(0.95, 2.5), 2000);
+      }
+
+      // Remove access + show card
+      setTimeout(() => {
+        access.remove();
+        showCard();
+      }, 1500);
+    }, bootLines.length * 500 + 500);
+
+    function showCard() {
+      const card = document.createElement("div");
+      card.className = "card";
+      card.innerHTML = `
+        <div style="font-size: 1.8rem; font-weight: bold; text-align: center; margin-bottom: 1rem; text-shadow: 0 0 10px rgba(240, 240, 240, 1); border-bottom: 2px solid #f0f0f0; padding-bottom: 0.5rem;">ANDREW DALKA</div>
+        <div><strong>MODES:</strong> SOLVER / THINKER / MAKER / INTEGRATOR</div>
+        <div><strong>TOOLCHAIN:</strong> AI SYSTEMS / MACHINE LOGIC / CONTEXT-AWARE DESIGN</div>
+        <div><strong>EMAIL:</strong> Andrew@dalkagi.com</div>
+        <div><strong>ALT EMAIL:</strong> Adalkagi@gmail.com</div>
+        <div><strong>PHONE:</strong> 1-716-860-4780</div>
+        <div><strong>ADDRESS:</strong> 4430 Valley View Ave, Hamburg, NY 14075</div>
+        <div class="btns">
+          <button onclick="saveVCF()">Save Contact</button>
+          <button onclick="window.location.href='sms:+17168604780'">Text Me</button>
+        </div>
+        <div><strong>STATUS:</strong> RADICALLY CAPABLE</div>
+      `;
+      screen.appendChild(card);
+      card.style.display = "flex";
+    }
+
+    function saveVCF() {
+      const vcfData = `BEGIN:VCARD
+VERSION:3.0
+N:Dalka;Andrew;;;
+FN:Andrew Dalka
+EMAIL:Andrew@dalkagi.com
+EMAIL;ALT:Adalkagi@gmail.com
+TEL:+17168604780
+ADR:;;4430 Valley View Ave;Hamburg;NY;14075;USA
+END:VCARD`;
+      const blob = new Blob([vcfData], { type: 'text/vcard' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = "Andrew_Dalka.vcf";
+      link.click();
+    }
+
+    // Matrix Mode
+    const trigger = document.getElementById("matrix-trigger");
+    const matrix = document.getElementById("matrix");
+    
+    trigger.addEventListener("mouseenter", () => {
+      matrix.style.display = "block";
+      createMatrixRain();
+    });
+
+    matrix.addEventListener("click", () => {
+      matrix.style.display = "none";
+      matrix.innerHTML = "";
+    });
+
+    function createMatrixRain() {
+      // Japanese katakana, hiragana, and some ASCII for authentic Matrix look
+      const chars = "アカサタナハマヤラワガザダバパイキシチニヒミリヰギジヂビピウクスツヌフムユルグズヅブプエケセテネヘメレヱゲゼデベペオコソトノホモヨロヲゴゾドボポヲンabcdefghijklmnopqrstuvwxyz0123456789";
+      const columnWidth = 20;
+      const columns = Math.floor(window.innerWidth / columnWidth);
+      
+      matrix.innerHTML = ''; // Clear existing content
+      
+      for (let i = 0; i < columns; i++) {
+        setTimeout(() => {
+          const column = document.createElement("div");
+          column.className = "matrix-column";
+          column.style.left = i * columnWidth + "px";
+          column.style.animationDuration = (Math.random() * 3 + 2) + "s";
+          column.style.animationDelay = Math.random() * 2 + "s";
+          
+          const charCount = Math.floor(Math.random() * 20) + 10;
+          for (let j = 0; j < charCount; j++) {
+            const char = document.createElement("div");
+            char.className = "matrix-char";
+            char.textContent = chars[Math.floor(Math.random() * chars.length)];
+            
+            // Make first few characters brighter (leading edge effect)
+            if (j < 3) {
+              char.classList.add("bright");
+            }
+            
+            column.appendChild(char);
+            
+            // Randomly change characters during animation
+            setInterval(() => {
+              if (Math.random() < 0.1) {
+                char.textContent = chars[Math.floor(Math.random() * chars.length)];
+              }
+            }, 100);
+          }
+          
+          matrix.appendChild(column);
+        }, i * 50);
+      }
+    }
+  </script>
+</body>
+</html>
