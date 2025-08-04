@@ -209,6 +209,7 @@
   </style>
 </head>
 <body>
+  <!-- Audio will be generated dynamically with Web Audio API -->
   <div id="screen"></div>
   <div id="matrix"></div>
   <div id="matrix-trigger"></div>
@@ -246,10 +247,130 @@
       access.textContent = "CONTACT ACCESS GRANTED";
       screen.appendChild(access);
 
-      // Trigger phone vibration for maximum impact - rocket launch intensity
-      if ('vibrate' in navigator) {
-        // Ultra-intense rocket launch pattern: rapid fire bursts building to massive finale
-        navigator.vibrate([100, 20, 150, 20, 200, 20, 250, 20, 300, 20, 400, 20, 500, 30, 600, 30, 800, 40, 1000]);
+      // Device-specific audio and haptic effects
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      
+      // Generate intense bass rumble with Web Audio API
+      function playBassRumble(volume, duration = 4) {
+        console.log("Playing rumble sound...");
+        try {
+          const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+          // Duration passed as parameter
+          
+          // Create multiple bass oscillators for thickness
+          const freq1 = audioContext.createOscillator();
+          const freq2 = audioContext.createOscillator();
+          const freq3 = audioContext.createOscillator();
+          const freq4 = audioContext.createOscillator();
+          
+          // Set ultra-low frequencies for maximum bass impact
+          freq1.frequency.setValueAtTime(20, audioContext.currentTime); // Sub-bass
+          freq2.frequency.setValueAtTime(35, audioContext.currentTime); // Low bass
+          freq3.frequency.setValueAtTime(50, audioContext.currentTime); // Mid-bass
+          freq4.frequency.setValueAtTime(80, audioContext.currentTime); // Upper bass
+          
+          // Use different wave types for richness
+          freq1.type = 'sawtooth';
+          freq2.type = 'square';
+          freq3.type = 'triangle';
+          freq4.type = 'sawtooth';
+          
+          // Create gain nodes for volume control
+          const gain1 = audioContext.createGain();
+          const gain2 = audioContext.createGain();
+          const gain3 = audioContext.createGain();
+          const gain4 = audioContext.createGain();
+          const masterGain = audioContext.createGain();
+          
+          // Set individual gains for layered effect
+          gain1.gain.setValueAtTime(0.8, audioContext.currentTime);
+          gain2.gain.setValueAtTime(0.6, audioContext.currentTime);
+          gain3.gain.setValueAtTime(0.7, audioContext.currentTime);
+          gain4.gain.setValueAtTime(0.4, audioContext.currentTime);
+          
+          // Master volume based on device
+          masterGain.gain.setValueAtTime(volume, audioContext.currentTime);
+          
+          // Create tremolo effect for that "rocket launch" feel
+          const tremolo = audioContext.createOscillator();
+          const tremoloGain = audioContext.createGain();
+          tremolo.frequency.setValueAtTime(15, audioContext.currentTime); // 15Hz tremolo
+          tremolo.type = 'sine';
+          tremoloGain.gain.setValueAtTime(0.4, audioContext.currentTime);
+          
+          // Connect tremolo
+          tremolo.connect(tremoloGain);
+          tremoloGain.connect(masterGain.gain);
+          
+          // Connect oscillators through gains to master
+          freq1.connect(gain1);
+          freq2.connect(gain2);
+          freq3.connect(gain3);
+          freq4.connect(gain4);
+          gain1.connect(masterGain);
+          gain2.connect(masterGain);
+          gain3.connect(masterGain);
+          gain4.connect(masterGain);
+          masterGain.connect(audioContext.destination);
+          
+          // Start everything
+          const startTime = audioContext.currentTime;
+          freq1.start(startTime);
+          freq2.start(startTime);
+          freq3.start(startTime);
+          freq4.start(startTime);
+          tremolo.start(startTime);
+          
+          // Stop after duration
+          freq1.stop(startTime + duration);
+          freq2.stop(startTime + duration);
+          freq3.stop(startTime + duration);
+          freq4.stop(startTime + duration);
+          tremolo.stop(startTime + duration);
+          
+        } catch (error) {
+          console.log("Audio not supported:", error);
+        }
+      }
+      
+      if (isMobile) {
+        // MOBILE: THREE escalating bursts with vibration + deep bass
+        if ('vibrate' in navigator) {
+          // First burst - light
+          navigator.vibrate([100, 150, 150, 150, 200]);
+          
+          // Second burst - medium (after 1 second)
+          setTimeout(() => {
+            navigator.vibrate([200, 100, 250, 100, 300, 100, 350]);
+          }, 1000);
+          
+          // Third burst - MASSIVE (after 2 seconds)
+          setTimeout(() => {
+            navigator.vibrate([
+              500, 100, 600, 100, 700, 100, 800, 100, 900, 100, 1000, 100,
+              1200, 150, 1400, 150, 1600, 200, 1800, 200, 2000
+            ]);
+          }, 2000);
+        }
+        
+        // Bass burst 1 - light
+        playBassRumble(0.6, 1.2);
+        
+        // Bass burst 2 - medium (after 1 second)
+        setTimeout(() => {
+          playBassRumble(0.75, 1.5);
+        }, 1000);
+        
+        // Bass burst 3 - MASSIVE (after 2 seconds)
+        setTimeout(() => {
+          playBassRumble(0.95, 2.5);
+        }, 2000);
+        
+      } else {
+        // PC: THREE escalating bass rumbles without vibration
+        playBassRumble(0.7, 1.2);
+        setTimeout(() => playBassRumble(0.8, 1.5), 1000);
+        setTimeout(() => playBassRumble(0.95, 2.5), 2000);
       }
 
       // Remove access + show card
